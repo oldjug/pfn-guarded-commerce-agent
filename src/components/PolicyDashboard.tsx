@@ -3,10 +3,14 @@
 import { useMemo, useRef, useState } from "react";
 
 import { PolicyChecks } from "@/components/PolicyChecks";
+import { LiveHbarExecutionPanel } from "@/components/LiveHbarExecutionPanel";
 import { ProofTrail } from "@/components/ProofTrail";
 import { RuntimeLifecycle } from "@/components/RuntimeLifecycle";
 import { ScenarioPicker } from "@/components/ScenarioPicker";
-import type { GuardedCommerceRuntimeRun } from "@/lib/agent-runtime/types";
+import type {
+  GuardedCommerceRuntimeRun,
+  PolicyGatedHbarExecutionResult,
+} from "@/lib/agent-runtime/types";
 import {
   DEMO_SCENARIOS,
   GUARDED_COMMERCE_POLICY,
@@ -30,6 +34,10 @@ export function PolicyDashboard({
     null,
   );
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [liveResult, setLiveResult] =
+    useState<PolicyGatedHbarExecutionResult | null>(null);
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const [livePending, setLivePending] = useState(false);
   const selectedScenario =
     DEMO_SCENARIOS.find(({ id }) => id === selectedScenarioId) ??
     DEMO_SCENARIOS[0];
@@ -53,12 +61,17 @@ export function PolicyDashboard({
       )
     : selectedScenario.request.amountAtomic;
   const currencyStatus = getCurrencyStatus(selectedScenario.request.currency);
+  const canExecuteLiveHbar =
+    evaluation.decision === "approved" &&
+    selectedScenario.request.currency === "HBAR";
 
   async function handleScenarioSelect(scenarioId: string) {
     const sequence = requestSequence.current + 1;
     requestSequence.current = sequence;
     setPendingScenarioId(scenarioId);
     setRuntimeError(null);
+    setLiveResult(null);
+    setLiveError(null);
 
     try {
       const response = await fetch("/api/runtime/evaluate", {
@@ -95,6 +108,49 @@ export function PolicyDashboard({
       if (requestSequence.current === sequence) {
         setPendingScenarioId(null);
       }
+    }
+  }
+
+  async function handleLiveHbarExecute() {
+    setLivePending(true);
+    setLiveError(null);
+    setLiveResult(null);
+
+    try {
+      const response = await fetch("/api/runtime/execute-hbar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scenarioId: selectedScenarioId }),
+      });
+      const body = (await response.json()) as
+        | PolicyGatedHbarExecutionResult
+        | { error?: string };
+
+      if (!response.ok && !("schemaVersion" in body)) {
+        throw new Error(
+          body.error ?? "The live HBAR execution boundary failed closed.",
+        );
+      }
+
+      if ("schemaVersion" in body) {
+        setLiveResult(body);
+        if (body.status !== "submitted") {
+          setLiveError(body.message);
+        }
+        return;
+      }
+
+      throw new Error("The live HBAR execution boundary returned no result.");
+    } catch (error) {
+      setLiveError(
+        error instanceof Error
+          ? error.message
+          : "The live HBAR execution boundary failed closed.",
+      );
+    } finally {
+      setLivePending(false);
     }
   }
 
@@ -216,19 +272,19 @@ export function PolicyDashboard({
               disabled
               className="mt-6 w-full cursor-not-allowed rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-500"
             >
-              Agent Kit tool execution disabled in Phase 2
+              Direct Agent Kit tool execution disabled in Phase 3 shell
             </button>
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-6">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-              Runtime boundaries
+              Dry-run shell boundaries
             </p>
             <ul className="mt-4 space-y-3 text-sm text-slate-300">
               {[
-                "No private keys or seeds",
-                "No wallet signing",
-                "No Hedera RPC or transaction submission",
+                "No browser private keys or seeds",
+                "No browser wallet signing",
+                "No Hedera submission from blocked requests",
                 "No HCS write or database persistence",
               ].map((boundary) => (
                 <li key={boundary} className="flex items-center gap-3">
@@ -238,6 +294,14 @@ export function PolicyDashboard({
               ))}
             </ul>
           </section>
+
+          <LiveHbarExecutionPanel
+            result={liveResult}
+            canExecute={canExecuteLiveHbar}
+            pending={livePending}
+            error={liveError}
+            onExecute={handleLiveHbarExecute}
+          />
         </div>
       </div>
 

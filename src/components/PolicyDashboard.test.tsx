@@ -42,9 +42,14 @@ describe("PolicyDashboard", () => {
     expect(screen.getByText("transfer_hbar_tool")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Agent Kit tool execution disabled in Phase 2",
+        name: "Direct Agent Kit tool execution disabled in Phase 3 shell",
       }),
     ).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Execute policy-gated HBAR testnet transfer",
+      }),
+    ).toBeEnabled();
     expect(screen.getByText("Transaction ID: none")).toBeInTheDocument();
   });
 
@@ -77,11 +82,61 @@ describe("PolicyDashboard", () => {
     expect(
       screen.getByText(/No action preview was produced/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Execute policy-gated HBAR testnet transfer",
+      }),
+    ).toBeDisabled();
     expect(fetch).toHaveBeenCalledWith(
       "/api/runtime/evaluate",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ scenarioId: "unknown-recipient" }),
+      }),
+    );
+  });
+
+  it("shows fail-closed live HBAR execution feedback", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
+            status: "fail_closed",
+            message: "Live HBAR execution is disabled.",
+            receipt: null,
+            lifecycle: [],
+            safety: {
+              networkSubmitted: false,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      ),
+    );
+
+    render(
+      <PolicyDashboard
+        initialRuntimeRun={createRuntimeRun(DEFAULT_SCENARIO_ID)}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Execute policy-gated HBAR testnet transfer",
+      }),
+    );
+
+    expect(await screen.findAllByText("Live HBAR execution is disabled.")).toHaveLength(2);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/runtime/execute-hbar",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ scenarioId: DEFAULT_SCENARIO_ID }),
       }),
     );
   });

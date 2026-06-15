@@ -6,7 +6,12 @@ export type RuntimeLifecycleStage =
   | "agent_kit_policies_registered"
   | "policy_evaluated"
   | "dry_run_execution_boundary_reached"
-  | "blocked_before_execution";
+  | "blocked_before_execution"
+  | "live_hbar_execution_requested"
+  | "hedera_testnet_client_ready"
+  | "hbar_transfer_submitted"
+  | "hedera_receipt_received"
+  | "live_execution_failed_closed";
 
 export type RuntimeLifecycleStatus = "completed" | "blocked";
 
@@ -39,14 +44,14 @@ export type DryRunActionPreview = {
 };
 
 export type RuntimeSafetyBoundary = {
-  clientCreated: false;
-  transactionBuilt: false;
-  transactionBytesCreated: false;
+  clientCreated: boolean;
+  transactionBuilt: boolean;
+  transactionBytesCreated: boolean;
   walletSignatureRequested: false;
-  networkSubmitted: false;
+  networkSubmitted: boolean;
   hcsWritten: false;
   persistencePerformed: false;
-  secretsRead: false;
+  secretsRead: boolean;
 };
 
 export type GuardedCommerceRuntimeRun = {
@@ -69,4 +74,50 @@ export type GuardedCommerceRuntimeRun = {
   actionPreview: DryRunActionPreview | null;
   safety: RuntimeSafetyBoundary;
   lifecycle: RuntimeLifecycleRecord[];
+};
+
+export type HbarTransferExecutionInput = {
+  recipientAccountId: string;
+  amountTinybars: string;
+  memo: string;
+};
+
+export type HbarTransferReceipt = {
+  network: "testnet";
+  transactionId: string;
+  nodeId: string;
+  transactionHash: string;
+  receiptStatus: string;
+  recipientAccountId: string;
+  amountTinybars: string;
+  memo: string;
+  executedAt: string;
+};
+
+export type LiveHbarExecutionStatus =
+  | "submitted"
+  | "policy_blocked"
+  | "fail_closed";
+
+export type LiveHbarExecutionSafety = {
+  clientCreated: boolean;
+  transactionBuilt: boolean;
+  transactionBytesReturned: false;
+  walletSignatureRequested: false;
+  networkSubmitted: boolean;
+  hcsWritten: false;
+  persistencePerformed: false;
+  secretsRead: boolean;
+  mainnetAllowed: false;
+};
+
+export type PolicyGatedHbarExecutionResult = {
+  schemaVersion: "pfn.guarded-commerce-live-hbar.v1";
+  scenarioId: string;
+  status: LiveHbarExecutionStatus;
+  message: string;
+  runtimeRun: GuardedCommerceRuntimeRun;
+  receipt: HbarTransferReceipt | null;
+  lifecycle: RuntimeLifecycleRecord[];
+  safety: LiveHbarExecutionSafety;
 };
