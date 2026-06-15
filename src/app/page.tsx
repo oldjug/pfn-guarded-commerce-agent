@@ -1,65 +1,64 @@
-import Image from "next/image";
+import { PolicyDashboard } from "@/components/PolicyDashboard";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen overflow-hidden">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(139,92,246,0.12),transparent_24%)]" />
+      <div className="relative mx-auto max-w-[1500px] px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
+        <header className="mb-8 border-b border-white/10 pb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 font-mono text-sm font-bold text-cyan-200">
+                PFN
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">
+                  Guarded Commerce Agent
+                </p>
+                <p className="text-xs text-slate-500">
+                  Hedera Policy Agent bounty · Phase 1
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-wider">
+              <span className="rounded-full border border-cyan-300/25 bg-cyan-300/8 px-3 py-1.5 text-cyan-200">
+                Mock only
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-slate-300">
+                No keys
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-slate-300">
+                No spend
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-12 max-w-4xl">
+            <p className="font-mono text-xs uppercase tracking-[0.28em] text-cyan-300">
+              Policy before payment
+            </p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
+              An agent can ask to buy.
+              <span className="block text-slate-500">
+                Policy decides whether it may.
+              </span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+              Explore approved and blocked commerce requests across amount,
+              recipient, purpose, currency, and daily budget checks. Phase 1
+              creates a local audit preview and never touches the network.
+            </p>
+          </div>
+        </header>
+
+        <PolicyDashboard />
+
+        <footer className="mt-8 border-t border-white/10 py-6 text-xs leading-5 text-slate-600">
+          PFN Guarded Commerce Agent is a standalone bounty prototype. It does
+          not modify PFN core and does not currently sign, submit, settle, or
+          persist Hedera transactions.
+        </footer>
+      </div>
+    </main>
   );
 }
