@@ -114,6 +114,10 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
 
 export const DEFAULT_SCENARIO_ID = DEMO_SCENARIOS[0].id;
 
+export function getDemoScenarioById(scenarioId: string) {
+  return DEMO_SCENARIOS.find(({ id }) => id === scenarioId) ?? null;
+}
+
 export function getCurrencyStatus(currency: string) {
   if (currency !== "HBAR" && currency !== "USDC") {
     return "unsupported";

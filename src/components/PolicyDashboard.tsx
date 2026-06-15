@@ -1,39 +1,42 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { PolicyChecks } from "@/components/PolicyChecks";
 import { ProofTrail } from "@/components/ProofTrail";
+import { RuntimeLifecycle } from "@/components/RuntimeLifecycle";
 import { ScenarioPicker } from "@/components/ScenarioPicker";
+import type { GuardedCommerceRuntimeRun } from "@/lib/agent-runtime/types";
 import {
-  DEFAULT_SCENARIO_ID,
   DEMO_SCENARIOS,
   GUARDED_COMMERCE_POLICY,
   getCurrencyStatus,
 } from "@/lib/policy/scenarios";
-import {
-  evaluateCommerceRequest,
-  formatAtomicAmount,
-} from "@/lib/policy/policyEngine";
+import { formatAtomicAmount } from "@/lib/policy/policyEngine";
 import { createMockPolicyProof } from "@/lib/policy/proofTrail";
 
-export function PolicyDashboard() {
+type PolicyDashboardProps = {
+  initialRuntimeRun: GuardedCommerceRuntimeRun;
+};
+
+export function PolicyDashboard({
+  initialRuntimeRun,
+}: PolicyDashboardProps) {
+  const requestSequence = useRef(0);
+  const [runtimeRun, setRuntimeRun] = useState(initialRuntimeRun);
   const [selectedScenarioId, setSelectedScenarioId] =
-    useState(DEFAULT_SCENARIO_ID);
+    useState(initialRuntimeRun.scenarioId);
+  const [pendingScenarioId, setPendingScenarioId] = useState<string | null>(
+    null,
+  );
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const selectedScenario =
     DEMO_SCENARIOS.find(({ id }) => id === selectedScenarioId) ??
     DEMO_SCENARIOS[0];
-  const evaluation = useMemo(
-    () =>
-      evaluateCommerceRequest(
-        GUARDED_COMMERCE_POLICY,
-        selectedScenario.request,
-      ),
-    [selectedScenario],
-  );
+  const evaluation = runtimeRun.evaluation;
   const proof = useMemo(
-    () => createMockPolicyProof(evaluation, "2026-06-15T12:00:00.000Z"),
-    [evaluation],
+    () => createMockPolicyProof(evaluation, runtimeRun.completedAt),
+    [evaluation, runtimeRun.completedAt],
   );
   const currencyPolicy =
     selectedScenario.request.currency === "HBAR" ||
@@ -51,13 +54,77 @@ export function PolicyDashboard() {
     : selectedScenario.request.amountAtomic;
   const currencyStatus = getCurrencyStatus(selectedScenario.request.currency);
 
+  async function handleScenarioSelect(scenarioId: string) {
+    const sequence = requestSequence.current + 1;
+    requestSequence.current = sequence;
+    setPendingScenarioId(scenarioId);
+    setRuntimeError(null);
+
+    try {
+      const response = await fetch("/api/runtime/evaluate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scenarioId }),
+      });
+
+      if (!response.ok) {
+        throw new Error("The dry-run runtime could not evaluate this request.");
+      }
+
+      const nextRuntimeRun =
+        (await response.json()) as GuardedCommerceRuntimeRun;
+      if (requestSequence.current !== sequence) {
+        return;
+      }
+
+      setRuntimeRun(nextRuntimeRun);
+      setSelectedScenarioId(scenarioId);
+    } catch (error) {
+      if (requestSequence.current !== sequence) {
+        return;
+      }
+
+      setRuntimeError(
+        error instanceof Error
+          ? error.message
+          : "The dry-run runtime is unavailable.",
+      );
+    } finally {
+      if (requestSequence.current === sequence) {
+        setPendingScenarioId(null);
+      }
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" aria-busy={pendingScenarioId !== null}>
       <ScenarioPicker
         scenarios={DEMO_SCENARIOS}
         selectedScenarioId={selectedScenarioId}
-        onSelect={setSelectedScenarioId}
+        onSelect={handleScenarioSelect}
       />
+
+      {pendingScenarioId ? (
+        <p
+          className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.04] px-4 py-3 text-sm text-cyan-100"
+          role="status"
+        >
+          Running Agent Kit policy shell for {pendingScenarioId}...
+        </p>
+      ) : null}
+
+      {runtimeError ? (
+        <p
+          className="rounded-2xl border border-rose-300/20 bg-rose-300/[0.05] px-4 py-3 text-sm text-rose-100"
+          role="alert"
+        >
+          {runtimeError}
+        </p>
+      ) : null}
+
+      <RuntimeLifecycle runtimeRun={runtimeRun} />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
         <section className="rounded-3xl border border-white/10 bg-[#0a1220]/90 p-5 shadow-2xl shadow-black/20 sm:p-6">
@@ -134,22 +201,22 @@ export function PolicyDashboard() {
             </p>
             <h2 className="mt-3 text-2xl font-semibold text-white">
               {evaluation.decision === "approved"
-                ? "Mock action ready"
-                : "Action blocked"}
+                ? "Dry-run boundary reached"
+                : "Blocked before execution"}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-300">
               {evaluation.decision === "approved"
-                ? "Every runtime policy passed. Phase 1 stops here before wallet signing or network submission."
+                ? "Every Agent Kit policy adapter passed. The runtime produced an action preview and intentionally did not invoke the tool."
                 : `${evaluation.blockedBy.length} policy check${
                     evaluation.blockedBy.length === 1 ? "" : "s"
-                  } failed. No action package may proceed.`}
+                  } failed. The runtime stopped before the dry-run execution boundary.`}
             </p>
             <button
               type="button"
               disabled
               className="mt-6 w-full cursor-not-allowed rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-500"
             >
-              Live Hedera spend disabled in Phase 1
+              Agent Kit tool execution disabled in Phase 2
             </button>
           </section>
 

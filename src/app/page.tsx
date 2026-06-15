@@ -1,6 +1,24 @@
 import { PolicyDashboard } from "@/components/PolicyDashboard";
+import { runGuardedCommerceDryRun } from "@/lib/agent-runtime/runtime";
+import {
+  DEFAULT_SCENARIO_ID,
+  GUARDED_COMMERCE_POLICY,
+  getDemoScenarioById,
+} from "@/lib/policy/scenarios";
 
 export default function Home() {
+  const initialScenario = getDemoScenarioById(DEFAULT_SCENARIO_ID);
+  if (!initialScenario) {
+    throw new Error("Missing default guarded commerce scenario.");
+  }
+
+  const initialRuntimeRun = runGuardedCommerceDryRun(
+    initialScenario.id,
+    initialScenario.request,
+    GUARDED_COMMERCE_POLICY,
+    "2026-06-15T21:00:00.000Z",
+  );
+
   return (
     <main className="min-h-screen overflow-hidden">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,0.12),transparent_28%),radial-gradient(circle_at_88%_18%,rgba(139,92,246,0.12),transparent_24%)]" />
@@ -16,13 +34,13 @@ export default function Home() {
                   Guarded Commerce Agent
                 </p>
                 <p className="text-xs text-slate-500">
-                  Hedera Policy Agent bounty · Phase 1
+                  Hedera Policy Agent bounty - Phase 2
                 </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 text-[11px] font-semibold uppercase tracking-wider">
               <span className="rounded-full border border-cyan-300/25 bg-cyan-300/8 px-3 py-1.5 text-cyan-200">
-                Mock only
+                Agent Kit shell
               </span>
               <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-slate-300">
                 No keys
@@ -45,13 +63,14 @@ export default function Home() {
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
               Explore approved and blocked commerce requests across amount,
-              recipient, purpose, currency, and daily budget checks. Phase 1
-              creates a local audit preview and never touches the network.
+              recipient, purpose, currency, and daily budget checks. Phase 2
+              runs the Agent Kit policy shell and still never touches the
+              network.
             </p>
           </div>
         </header>
 
-        <PolicyDashboard />
+        <PolicyDashboard initialRuntimeRun={initialRuntimeRun} />
 
         <footer className="mt-8 border-t border-white/10 py-6 text-xs leading-5 text-slate-600">
           PFN Guarded Commerce Agent is a standalone bounty prototype. It does
