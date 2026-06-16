@@ -272,7 +272,7 @@ export function PolicyDashboard({
               disabled
               className="mt-6 w-full cursor-not-allowed rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-500"
             >
-              Direct Agent Kit tool execution disabled in Phase 3 shell
+              Direct Agent Kit tool execution disabled outside guarded Phase 5 path
             </button>
           </section>
 
@@ -285,7 +285,8 @@ export function PolicyDashboard({
                 "No browser private keys or seeds",
                 "No browser wallet signing",
                 "No Hedera submission from blocked requests",
-                "No HCS write or database persistence",
+                "HCS audit writes only after approved HBAR receipts",
+                "No database persistence",
               ].map((boundary) => (
                 <li key={boundary} className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full bg-cyan-300" />

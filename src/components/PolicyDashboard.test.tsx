@@ -42,7 +42,7 @@ describe("PolicyDashboard", () => {
     expect(screen.getByText("transfer_hbar_tool")).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: "Direct Agent Kit tool execution disabled in Phase 3 shell",
+        name: "Direct Agent Kit tool execution disabled outside guarded Phase 5 path",
       }),
     ).toBeDisabled();
     expect(
@@ -106,6 +106,7 @@ describe("PolicyDashboard", () => {
             status: "fail_closed",
             message: "Live HBAR execution is disabled.",
             receipt: null,
+            hcsAudit: null,
             lifecycle: [],
             safety: {
               networkSubmitted: false,
@@ -139,5 +140,72 @@ describe("PolicyDashboard", () => {
         body: JSON.stringify({ scenarioId: DEFAULT_SCENARIO_ID }),
       }),
     );
+  });
+
+  it("shows HCS audit references when approved live execution completes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
+            scenarioId: DEFAULT_SCENARIO_ID,
+            status: "submitted",
+            message:
+              "Policy approved the request, Hedera testnet returned a transaction receipt, and HCS recorded the audit checkpoint.",
+            receipt: {
+              network: "testnet",
+              transactionId: "0.0.1234@1710000000.000000000",
+              nodeId: "0.0.3",
+              transactionHash: "abc123",
+              receiptStatus: "SUCCESS",
+              recipientAccountId: "0.0.9186153",
+              amountTinybars: "100000000",
+              memo: "PFN-GCA:GCA-APPROVED-001",
+              executedAt: "2026-06-15T22:00:00.000Z",
+            },
+            hcsAudit: {
+              network: "testnet",
+              topicId: "0.0.7001",
+              transactionId: "0.0.1234@1710000001.000000000",
+              nodeId: "0.0.3",
+              transactionHash: "def456",
+              receiptStatus: "SUCCESS",
+              topicSequenceNumber: "42",
+              topicRunningHash: "feedface",
+              messageHash: "0123456789abcdef",
+              submittedAt: "2026-06-15T22:00:05.000Z",
+            },
+            lifecycle: [],
+            safety: {
+              networkSubmitted: true,
+              hcsWritten: true,
+            },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          },
+        ),
+      ),
+    );
+
+    render(
+      <PolicyDashboard
+        initialRuntimeRun={createRuntimeRun(DEFAULT_SCENARIO_ID)}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Execute policy-gated HBAR testnet transfer",
+      }),
+    );
+
+    expect(await screen.findByText("HCS topic")).toBeInTheDocument();
+    expect(screen.getByText("0.0.7001")).toBeInTheDocument();
+    expect(
+      screen.getByText("0.0.1234@1710000001.000000000"),
+    ).toBeInTheDocument();
   });
 });

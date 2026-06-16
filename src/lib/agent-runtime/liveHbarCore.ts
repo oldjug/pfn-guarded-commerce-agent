@@ -1,5 +1,7 @@
 import { runGuardedCommerceDryRun } from "@/lib/agent-runtime/runtimeCore";
 import type {
+  HcsAuditCheckpointInput,
+  HcsAuditReceipt,
   HbarTransferExecutionInput,
   HbarTransferReceipt,
   LiveHbarExecutionSafety,
@@ -15,11 +17,17 @@ export type HbarTransferExecutor = (
   input: HbarTransferExecutionInput,
 ) => Promise<HbarTransferReceipt>;
 
+export type HcsAuditSubmitter = (
+  input: HcsAuditCheckpointInput,
+) => Promise<HcsAuditReceipt>;
+
 type PolicyGatedHbarExecutionOptions = {
   scenarioId: string;
   request: CommerceRequest;
   policy: GuardedCommercePolicy;
   executeHbarTransfer: HbarTransferExecutor;
+  assertHcsAuditReady?: () => void;
+  submitHcsAudit?: HcsAuditSubmitter;
   occurredAt?: string;
 };
 
@@ -52,6 +60,8 @@ export async function executePolicyGatedHbarTransfer({
   request,
   policy,
   executeHbarTransfer,
+  assertHcsAuditReady,
+  submitHcsAudit,
   occurredAt = new Date().toISOString(),
 }: PolicyGatedHbarExecutionOptions): Promise<PolicyGatedHbarExecutionResult> {
   const runtimeRun = runGuardedCommerceDryRun(
@@ -70,6 +80,7 @@ export async function executePolicyGatedHbarTransfer({
         "Policy blocked this request before Hedera client or transfer creation.",
       runtimeRun,
       receipt: null,
+      hcsAudit: null,
       lifecycle: runtimeRun.lifecycle,
       safety: createSafety(),
     };
@@ -80,9 +91,10 @@ export async function executePolicyGatedHbarTransfer({
       schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
       scenarioId,
       status: "fail_closed",
-      message: "Live execution is limited to HBAR testnet transfers in Phase 3.",
+      message: "Live execution is limited to HBAR testnet transfers in Phase 5.",
       runtimeRun,
       receipt: null,
+      hcsAudit: null,
       lifecycle: appendLifecycle(runtimeRun.lifecycle, {
         stage: "live_execution_failed_closed",
         status: "blocked",
@@ -92,6 +104,33 @@ export async function executePolicyGatedHbarTransfer({
       }),
       safety: createSafety(),
     };
+  }
+
+  if (assertHcsAuditReady) {
+    try {
+      assertHcsAuditReady();
+    } catch (error) {
+      return {
+        schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
+        scenarioId,
+        status: "fail_closed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "HCS audit checkpoint failed closed before HBAR transfer.",
+        runtimeRun,
+        receipt: null,
+        hcsAudit: null,
+        lifecycle: appendLifecycle(runtimeRun.lifecycle, {
+          stage: "hcs_audit_failed_closed",
+          status: "blocked",
+          occurredAt,
+          detail:
+            "The HCS audit topic was not ready, so the HBAR transfer was not submitted.",
+        }),
+        safety: createSafety(),
+      };
+    }
   }
 
   const requestedLifecycle = appendLifecycle(runtimeRun.lifecycle, {
@@ -108,7 +147,7 @@ export async function executePolicyGatedHbarTransfer({
       amountTinybars: runtimeRun.normalizedIntent.amountAtomic,
       memo: runtimeRun.normalizedIntent.transactionMemo,
     });
-    const lifecycle = [
+    let lifecycle = [
       ...requestedLifecycle,
       {
         stage: "hedera_testnet_client_ready",
@@ -131,6 +170,117 @@ export async function executePolicyGatedHbarTransfer({
       },
     ] satisfies RuntimeLifecycleRecord[];
 
+    if (submitHcsAudit) {
+      lifecycle = appendLifecycle(lifecycle, {
+        stage: "hcs_audit_requested",
+        status: "completed",
+        occurredAt: receipt.executedAt,
+        detail:
+          "HBAR receipt was returned. The server-only HCS audit checkpoint was requested.",
+      });
+
+      try {
+        const hcsAudit = await submitHcsAudit({
+          schemaVersion: "pfn.guarded-commerce-hcs-audit-input.v1",
+          scenarioId,
+          requestId: runtimeRun.normalizedIntent.requestId,
+          serviceName: runtimeRun.normalizedIntent.serviceName,
+          policyDecision: "approved",
+          hbarTransactionId: receipt.transactionId,
+          hbarReceiptStatus: receipt.receiptStatus,
+          recipientAccountId: receipt.recipientAccountId,
+          amountTinybars: receipt.amountTinybars,
+          memo: receipt.memo,
+          occurredAt: receipt.executedAt,
+        });
+
+        lifecycle = [
+          ...lifecycle,
+          {
+            stage: "hcs_audit_submitted",
+            status: "completed",
+            occurredAt: hcsAudit.submittedAt,
+            detail: `Submitted HCS audit transaction ${hcsAudit.transactionId}.`,
+          },
+          {
+            stage: "hcs_receipt_received",
+            status: "completed",
+            occurredAt: hcsAudit.submittedAt,
+            detail: `HCS topic ${hcsAudit.topicId} accepted sequence ${hcsAudit.topicSequenceNumber ?? "unavailable"}.`,
+          },
+        ] satisfies RuntimeLifecycleRecord[];
+
+        return {
+          schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
+          scenarioId,
+          status: "submitted",
+          message:
+            "Policy approved the request, Hedera testnet returned a transaction receipt, and HCS recorded the audit checkpoint.",
+          runtimeRun: {
+            ...runtimeRun,
+            safety: {
+              clientCreated: true,
+              transactionBuilt: true,
+              transactionBytesCreated: false,
+              walletSignatureRequested: false,
+              networkSubmitted: true,
+              hcsWritten: true,
+              persistencePerformed: false,
+              secretsRead: true,
+            },
+          },
+          receipt,
+          hcsAudit,
+          lifecycle,
+          safety: createSafety({
+            clientCreated: true,
+            transactionBuilt: true,
+            networkSubmitted: true,
+            hcsWritten: true,
+            secretsRead: true,
+          }),
+        };
+      } catch (error) {
+        return {
+          schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
+          scenarioId,
+          status: "fail_closed",
+          message:
+            error instanceof Error
+              ? error.message
+              : "HCS audit checkpoint failed closed after HBAR receipt.",
+          runtimeRun: {
+            ...runtimeRun,
+            safety: {
+              clientCreated: true,
+              transactionBuilt: true,
+              transactionBytesCreated: false,
+              walletSignatureRequested: false,
+              networkSubmitted: true,
+              hcsWritten: false,
+              persistencePerformed: false,
+              secretsRead: true,
+            },
+          },
+          receipt,
+          hcsAudit: null,
+          lifecycle: appendLifecycle(lifecycle, {
+            stage: "hcs_audit_failed_closed",
+            status: "blocked",
+            occurredAt: new Date().toISOString(),
+            detail:
+              "The HCS audit checkpoint failed after the HBAR receipt was returned.",
+          }),
+          safety: createSafety({
+            clientCreated: true,
+            transactionBuilt: true,
+            networkSubmitted: true,
+            secretsRead: true,
+          }),
+        };
+      }
+    }
+
     return {
       schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
       scenarioId,
@@ -151,6 +301,7 @@ export async function executePolicyGatedHbarTransfer({
         },
       },
       receipt,
+      hcsAudit: null,
       lifecycle,
       safety: createSafety({
         clientCreated: true,
@@ -170,6 +321,7 @@ export async function executePolicyGatedHbarTransfer({
           : "Hedera HBAR execution failed closed.",
       runtimeRun,
       receipt: null,
+      hcsAudit: null,
       lifecycle: appendLifecycle(requestedLifecycle, {
         stage: "live_execution_failed_closed",
         status: "blocked",

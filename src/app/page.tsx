@@ -34,7 +34,7 @@ export default function Home() {
                   Guarded Commerce Agent
                 </p>
                 <p className="text-xs text-slate-500">
-                  Hedera Policy Agent bounty - Phase 3
+                  Hedera Policy Agent bounty - Phase 5
                 </p>
               </div>
             </div>
@@ -46,7 +46,7 @@ export default function Home() {
                 No keys
               </span>
               <span className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1.5 text-slate-300">
-                No spend
+                HBAR + HCS audit
               </span>
             </div>
           </div>
@@ -63,9 +63,9 @@ export default function Home() {
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
               Explore approved and blocked commerce requests across amount,
-              recipient, purpose, currency, and daily budget checks. Phase 3
-              adds a testnet HBAR spend boundary that remains locked behind
-              those checks.
+              recipient, purpose, currency, and daily budget checks. Phase 5
+              adds an HCS audit checkpoint after the approved testnet HBAR
+              spend boundary.
             </p>
           </div>
         </header>
@@ -75,7 +75,8 @@ export default function Home() {
         <footer className="mt-8 border-t border-white/10 py-6 text-xs leading-5 text-slate-600">
           PFN Guarded Commerce Agent is a standalone bounty prototype. It does
           not modify PFN core and only submits Hedera testnet HBAR transactions
-          when local operator env vars are configured and policies approve.
+          plus HCS audit checkpoints when local operator env vars are
+          configured and policies approve.
         </footer>
       </div>
     </main>

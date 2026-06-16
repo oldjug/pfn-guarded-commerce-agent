@@ -72,7 +72,7 @@ export function readHederaTestnetConfig(
   const network = requireEnv(env, "HEDERA_NETWORK").toLowerCase();
   if (network !== "testnet") {
     throw new HbarTransferConfigurationError(
-      "Only HEDERA_NETWORK=testnet is allowed in Phase 3.",
+      "Only HEDERA_NETWORK=testnet is allowed in Phase 5.",
     );
   }
 

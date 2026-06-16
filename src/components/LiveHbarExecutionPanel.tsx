@@ -15,8 +15,8 @@ export function LiveHbarExecutionPanel({
   error,
   onExecute,
 }: LiveHbarExecutionPanelProps) {
-  const submittedReceipt =
-    result?.status === "submitted" ? result.receipt : null;
+  const submittedReceipt = result?.receipt ?? null;
+  const hcsAudit = result?.hcsAudit ?? null;
 
   return (
     <section className="rounded-3xl border border-white/10 bg-white/[0.025] p-6">
@@ -27,9 +27,9 @@ export function LiveHbarExecutionPanel({
         Policy-gated execution
       </h2>
       <p className="mt-3 text-sm leading-6 text-slate-300">
-        Phase 3 can submit a real HBAR transfer on Hedera testnet only after
-        every policy check passes. Mainnet, USDC, HCS, persistence, and
-        deployment are still blocked.
+        Phase 5 can submit a real HBAR transfer on Hedera testnet only after
+        every policy check passes, then write an HCS audit checkpoint. Mainnet,
+        USDC live transfers, persistence, and deployment are still blocked.
       </p>
 
       <button
@@ -102,6 +102,35 @@ export function LiveHbarExecutionPanel({
             </dl>
           ) : null}
 
+          {hcsAudit ? (
+            <dl className="mt-4 grid gap-3 rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.035] p-4 text-xs">
+              <div>
+                <dt className="text-slate-500">HCS topic</dt>
+                <dd className="mt-1 break-all font-mono text-cyan-100">
+                  {hcsAudit.topicId}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">HCS message transaction</dt>
+                <dd className="mt-1 break-all font-mono text-cyan-100">
+                  {hcsAudit.transactionId}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate-500">Topic sequence / hash</dt>
+                <dd className="mt-1 break-all font-mono text-slate-200">
+                  {hcsAudit.topicSequenceNumber ?? "unavailable"} /{" "}
+                  {hcsAudit.messageHash}
+                </dd>
+              </div>
+            </dl>
+          ) : submittedReceipt && result?.status !== "submitted" ? (
+            <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/[0.05] p-4 text-xs leading-5 text-amber-100">
+              HBAR receipt exists, but the HCS audit checkpoint failed closed.
+              No persistent app storage was written.
+            </p>
+          ) : null}
+
           <ol className="mt-4 space-y-2">
             {result.lifecycle.slice(-4).map((record) => (
               <li key={`${record.stage}-${record.occurredAt}`}>
@@ -120,7 +149,7 @@ export function LiveHbarExecutionPanel({
       <div className="mt-5 grid gap-2 rounded-2xl border border-amber-300/15 bg-amber-300/[0.04] p-4 text-xs text-amber-100/80">
         <span>Mainnet allowed: no</span>
         <span>Transaction bytes returned: no</span>
-        <span>HCS write: no</span>
+        <span>HCS write: approved HBAR audit only</span>
         <span>Persistence: no</span>
       </div>
     </section>

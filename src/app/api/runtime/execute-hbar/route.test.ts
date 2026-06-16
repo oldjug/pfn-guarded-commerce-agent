@@ -22,6 +22,7 @@ describe("POST /api/runtime/execute-hbar", () => {
     expect(response.status).toBe(200);
     expect(body.status).toBe("fail_closed");
     expect(body.receipt).toBeNull();
+    expect(body.hcsAudit).toBeNull();
     expect(body.safety.networkSubmitted).toBe(false);
   });
 
@@ -38,6 +39,7 @@ describe("POST /api/runtime/execute-hbar", () => {
     expect(response.status).toBe(200);
     expect(body.status).toBe("policy_blocked");
     expect(body.receipt).toBeNull();
+    expect(body.hcsAudit).toBeNull();
     expect(body.safety.clientCreated).toBe(false);
   });
 

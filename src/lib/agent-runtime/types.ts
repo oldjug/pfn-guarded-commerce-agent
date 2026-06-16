@@ -11,6 +11,11 @@ export type RuntimeLifecycleStage =
   | "hedera_testnet_client_ready"
   | "hbar_transfer_submitted"
   | "hedera_receipt_received"
+  | "hcs_audit_preflight_ready"
+  | "hcs_audit_requested"
+  | "hcs_audit_submitted"
+  | "hcs_receipt_received"
+  | "hcs_audit_failed_closed"
   | "live_execution_failed_closed";
 
 export type RuntimeLifecycleStatus = "completed" | "blocked";
@@ -49,7 +54,7 @@ export type RuntimeSafetyBoundary = {
   transactionBytesCreated: boolean;
   walletSignatureRequested: false;
   networkSubmitted: boolean;
-  hcsWritten: false;
+  hcsWritten: boolean;
   persistencePerformed: false;
   secretsRead: boolean;
 };
@@ -94,6 +99,33 @@ export type HbarTransferReceipt = {
   executedAt: string;
 };
 
+export type HcsAuditCheckpointInput = {
+  schemaVersion: "pfn.guarded-commerce-hcs-audit-input.v1";
+  scenarioId: string;
+  requestId: string;
+  serviceName: string;
+  policyDecision: "approved";
+  hbarTransactionId: string;
+  hbarReceiptStatus: string;
+  recipientAccountId: string;
+  amountTinybars: string;
+  memo: string;
+  occurredAt: string;
+};
+
+export type HcsAuditReceipt = {
+  network: "testnet";
+  topicId: string;
+  transactionId: string;
+  nodeId: string;
+  transactionHash: string;
+  receiptStatus: string;
+  topicSequenceNumber: string | null;
+  topicRunningHash: string | null;
+  messageHash: string;
+  submittedAt: string;
+};
+
 export type LiveHbarExecutionStatus =
   | "submitted"
   | "policy_blocked"
@@ -105,7 +137,7 @@ export type LiveHbarExecutionSafety = {
   transactionBytesReturned: false;
   walletSignatureRequested: false;
   networkSubmitted: boolean;
-  hcsWritten: false;
+  hcsWritten: boolean;
   persistencePerformed: false;
   secretsRead: boolean;
   mainnetAllowed: false;
@@ -118,6 +150,7 @@ export type PolicyGatedHbarExecutionResult = {
   message: string;
   runtimeRun: GuardedCommerceRuntimeRun;
   receipt: HbarTransferReceipt | null;
+  hcsAudit: HcsAuditReceipt | null;
   lifecycle: RuntimeLifecycleRecord[];
   safety: LiveHbarExecutionSafety;
 };
