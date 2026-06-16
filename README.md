@@ -1,8 +1,8 @@
 # PFN Guarded Commerce Agent
 
-Standalone Phase 5 prototype for Issue #80: a policy-gated commerce agent that evaluates a proposed Hedera service purchase before any wallet or network action is allowed, then can submit a real HBAR transfer on Hedera testnet and write an HCS audit checkpoint only after the policies approve it.
+Standalone submission prototype for Issue #80: a policy-gated commerce agent that evaluates a proposed Hedera service purchase before any wallet or network action is allowed, then can submit a real HBAR transfer on Hedera testnet and write an HCS audit checkpoint only after the policies approve it.
 
-## Phase 5 scope
+## Submission scope
 
 The demo evaluates five runtime policies:
 
@@ -23,20 +23,46 @@ The server-side runtime shell uses Hedera Agent Kit v4 contracts to:
 7. submit an HBAR testnet transfer only for approved HBAR requests when local server env vars explicitly enable it,
 8. write an HCS audit checkpoint with the policy decision and HBAR receipt reference.
 
-The dashboard includes one approved HBAR request, three blocked requests, and a USDC policy-only preview. Every evaluation produces a visible lifecycle and local mock proof trail. The approved HBAR request can trigger a live testnet transfer when `.env.local` is configured locally.
+The dashboard includes one approved HBAR request, three blocked requests, and a USDC policy-only preview. Every evaluation produces a visible lifecycle and local mock proof trail. The approved HBAR request can trigger a live testnet transfer when server env vars are configured locally or in a controlled testnet deployment.
 
 ## Truth and boundaries
 
 - HBAR is the primary demo currency.
-- USDC is represented at the policy layer only.
+- USDC is represented at the policy layer only and remains preview-only for submission.
 - Hedera Agent Kit and its required SDK peer are installed for runtime contract integration.
 - `AgentMode.RETURN_BYTES` is recorded as the future external-signing posture, but Phase 5 server execution uses an environment-backed testnet operator for HBAR plus HCS audit only.
 - Blocked requests stop before Hedera client creation.
-- No mainnet, USDC live transfer, browser key collection, database write, deployment, or PFN core edit is present.
+- No mainnet, USDC live transfer, browser key collection, database write, or PFN core edit is present.
 - HCS writes are limited to approved HBAR audit checkpoints and require `HEDERA_HCS_TOPIC_ID` from local env.
 - No private key, seed, or `.env` file is committed.
 - A `mock_policy_receipt_created` result is a local audit preview, not a Hedera ledger receipt.
 - This repository is standalone and does not modify PFN core.
+
+## Live proof lock
+
+The submission proof path is HBAR plus HCS. USDC stays policy-supported and preview-only unless a later bounty requirement explicitly asks for live token transfer support.
+
+Phase 5B completed one approved policy-gated Hedera testnet proof pass:
+
+- HBAR transaction: `0.0.9238841@1781579286.685864540`
+- HBAR recipient: `0.0.9186153`
+- HBAR amount: `100000000` tinybars / 1 HBAR
+- HBAR memo: `PFN-GCA:GCA-APPROVED-001`
+- HCS transaction: `0.0.9238841@1781579288.693796185`
+- HCS topic: `0.0.9248994`
+- HCS sequence: `1`
+- HCS message hash: `409a6e30bcb1a439d5c9da90df3a84b1a3f2be5a9f9ebba12057947f22070edd`
+
+No extra HBAR transfer is required for deployment polish. The hosted demo can show the policy engine, blocked flows, USDC preview-only path, and the server-gated HBAR/HCS execution boundary. Running another live transfer requires explicit local or deployment env configuration and should stay testnet-only.
+
+## Submission checklist
+
+- GitHub repository: `https://github.com/oldjug/pfn-guarded-commerce-agent`
+- Hosted demo: deploy from `master` with `.env.local` excluded.
+- Demo proof: show the approved HBAR scenario, policy lifecycle, HBAR receipt, and HCS audit checkpoint.
+- Blocked proof: show an over-limit, unknown-recipient, or wrong-purpose scenario stopping before Hedera client creation.
+- USDC note: policy-supported preview only; no live USDC transfer in this submission.
+- Boundary note: no mainnet, no custody, no browser key collection, no persistence/database writes, and no PFN core edits.
 
 ## Agent Kit integration
 

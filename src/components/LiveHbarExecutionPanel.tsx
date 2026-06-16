@@ -29,7 +29,8 @@ export function LiveHbarExecutionPanel({
       <p className="mt-3 text-sm leading-6 text-slate-300">
         Phase 5 can submit a real HBAR transfer on Hedera testnet only after
         every policy check passes, then write an HCS audit checkpoint. Mainnet,
-        USDC live transfers, persistence, and deployment are still blocked.
+        USDC live transfers, and persistence are still blocked; hosted demos
+        must keep this boundary env-gated.
       </p>
 
       <button
