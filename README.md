@@ -8,7 +8,9 @@ This is Jug-style PFN, not a clone of another agent-spend project. The demo keep
 
 - GitHub: <https://github.com/oldjug/pfn-guarded-commerce-agent>
 - Production demo: <https://pfn-guarded-commerce-agent.vercel.app>
-- Submission commit: `67d1157`
+- Hedera Agent Kit feedback issue: <https://github.com/hashgraph/hedera-agent-kit-js/issues/938>
+- Implementation commit: `67d1157`
+- Public packaging commit: `31a8935`
 - Production safety: no Hedera operator secrets are configured in Vercel, so live HBAR execution and HCS writes fail closed unless a testnet-only operator is added intentionally.
 
 ## Core Flow
@@ -94,7 +96,7 @@ No extra HBAR transfer is required for UI or deployment polish. Running another 
 - Policy demo works locally.
 - HCS audit/proof messages work on testnet when env vars are configured.
 - Demo video shows approved, blocked, escalated, receipt, HCS, and no-custody boundaries.
-- Hedera feedback issue link added before final form submission.
+- Hedera feedback issue: <https://github.com/hashgraph/hedera-agent-kit-js/issues/938>
 
 ## Run Locally
 
