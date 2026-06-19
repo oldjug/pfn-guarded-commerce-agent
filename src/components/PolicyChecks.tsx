@@ -5,6 +5,16 @@ type PolicyChecksProps = {
 };
 
 export function PolicyChecks({ checks }: PolicyChecksProps) {
+  function badgeClass(result: PolicyCheck["result"]) {
+    if (result === "pass") {
+      return "border-emerald-400/30 bg-emerald-400/10 text-emerald-300";
+    }
+    if (result === "escalate") {
+      return "border-amber-400/30 bg-amber-400/10 text-amber-300";
+    }
+    return "border-rose-400/30 bg-rose-400/10 text-rose-300";
+  }
+
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/55">
       <div className="border-b border-white/10 px-5 py-4">
@@ -37,13 +47,13 @@ export function PolicyChecks({ checks }: PolicyChecksProps) {
               </p>
             </div>
             <span
-              className={`w-fit rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider ${
-                check.passed
-                  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                  : "border-rose-400/30 bg-rose-400/10 text-rose-300"
-              }`}
+              className={`w-fit rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider ${badgeClass(check.result)}`}
             >
-              {check.passed ? "Pass" : "Block"}
+              {check.result === "pass"
+                ? "Pass"
+                : check.result === "escalate"
+                  ? "Review"
+                  : "Block"}
             </span>
           </li>
         ))}

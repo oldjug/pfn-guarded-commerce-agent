@@ -2,7 +2,7 @@ import { AgentMode } from "@hashgraph/hedera-agent-kit";
 import { coreAccountPluginToolNames } from "@hashgraph/hedera-agent-kit/plugins";
 
 import {
-  PFN_USDC_POLICY_PREVIEW_TOOL,
+  PFN_UNSUPPORTED_CURRENCY_POLICY_PREVIEW_TOOL,
   createGuardedCommercePolicyAdapters,
 } from "@/lib/agent-runtime/policies";
 import type {
@@ -23,7 +23,7 @@ function normalizeCommerceIntent(
   const toolMethod =
     request.currency === "HBAR"
       ? coreAccountPluginToolNames.TRANSFER_HBAR_TOOL
-      : PFN_USDC_POLICY_PREVIEW_TOOL;
+      : PFN_UNSUPPORTED_CURRENCY_POLICY_PREVIEW_TOOL;
 
   return {
     ...request,
@@ -45,15 +45,24 @@ function evaluateRuntimePolicies(
     adapter.readCheck(baseEvaluation),
   );
   const blockedBy = checks
-    .filter(({ passed }) => !passed)
+    .filter(({ result }) => result === "block")
+    .map(({ key }) => key);
+  const escalatedBy = checks
+    .filter(({ result }) => result === "escalate")
     .map(({ key }) => key);
 
   return {
     evaluation: {
       ...baseEvaluation,
-      decision: blockedBy.length === 0 ? "approved" : "blocked",
+      decision:
+        blockedBy.length > 0
+          ? "blocked"
+          : escalatedBy.length > 0
+            ? "escalated"
+            : "approved",
       checks,
       blockedBy,
+      escalatedBy,
     },
     registeredPolicies: policyAdapters.map(({ name }) => name),
   };
@@ -71,6 +80,7 @@ export function runGuardedCommerceDryRun(
     request,
   );
   const approved = evaluation.decision === "approved";
+  const escalated = evaluation.decision === "escalated";
   const lifecycle: RuntimeLifecycleRecord[] = [
     {
       stage: "user_request_received",
@@ -92,11 +102,13 @@ export function runGuardedCommerceDryRun(
     },
     {
       stage: "policy_evaluated",
-      status: approved ? "completed" : "blocked",
+      status: approved ? "completed" : escalated ? "escalated" : "blocked",
       occurredAt,
       detail: approved
         ? "All runtime policies passed."
-        : `Blocked by ${evaluation.blockedBy.join(", ")}.`,
+        : escalated
+          ? `Escalated for owner review by ${evaluation.escalatedBy.join(", ")}.`
+          : `Blocked by ${evaluation.blockedBy.join(", ")}.`,
     },
     approved
       ? {
@@ -106,6 +118,14 @@ export function runGuardedCommerceDryRun(
           detail:
             "Approved action reached the dry-run boundary. Tool execution was intentionally not invoked.",
         }
+      : escalated
+        ? {
+            stage: "escalated_for_owner_review",
+            status: "escalated",
+            occurredAt,
+            detail:
+              "The runtime stopped before tool execution and marked the request for human approval.",
+          }
       : {
           stage: "blocked_before_execution",
           status: "blocked",

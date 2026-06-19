@@ -50,23 +50,31 @@ describe("HCS audit configuration", () => {
   it("creates a bounded audit message with receipt and policy references", () => {
     const message = createHcsAuditMessage({
       schemaVersion: "pfn.guarded-commerce-hcs-audit-input.v1",
-      scenarioId: "approved-hbar",
-      requestId: "GCA-APPROVED-001",
-      serviceName: "PFN approved data API",
-      policyDecision: "approved",
-      hbarTransactionId: "0.0.1234@1710000000.000000000",
-      hbarReceiptStatus: "SUCCESS",
+      scenarioId: "escalated-owner-review",
+      requestId: "GCA-ESCALATED-006",
+      serviceName: "PFN Feature Unlock",
+      policyDecision: "escalated",
+      policyVersion: "pfn-guarded-commerce-v1",
+      receiptId: "pfn-gca:GCA-ESCALATED-006",
+      receiptStatus: "owner-review-required",
+      feature: "PFN Feature Unlock",
+      fulfillmentTarget: "XRP / XRPL EVM Feature NFT",
+      hbarTransactionId: null,
+      hbarReceiptStatus: null,
       recipientAccountId: "0.0.9186153",
-      amountTinybars: "100000000",
-      memo: "PFN-GCA:GCA-APPROVED-001",
+      amountAtomic: "800000000",
+      currency: "HBAR",
+      memo: "PFN-GCA:GCA-ESCALATED-006",
+      blockedBy: [],
+      escalatedBy: ["human_approval"],
       occurredAt: "2026-06-15T22:00:00.000Z",
     });
 
     expect(message.schemaVersion).toBe("pfn.guarded-commerce-hcs-audit.v1");
-    expect(message.policyDecision).toBe("approved");
-    expect(message.hbarTransactionId).toBe(
-      "0.0.1234@1710000000.000000000",
-    );
+    expect(message.policyDecision).toBe("escalated");
+    expect(message.hbarTransactionId).toBeNull();
+    expect(message.fulfillmentTarget).toBe("XRP / XRPL EVM Feature NFT");
+    expect(message.escalatedBy).toEqual(["human_approval"]);
     expect(message.boundaries).toMatchObject({
       network: "testnet",
       currency: "HBAR",

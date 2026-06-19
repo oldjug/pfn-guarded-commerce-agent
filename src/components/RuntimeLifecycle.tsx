@@ -5,6 +5,25 @@ type RuntimeLifecycleProps = {
 };
 
 export function RuntimeLifecycle({ runtimeRun }: RuntimeLifecycleProps) {
+  function statusClasses(status: (typeof runtimeRun.lifecycle)[number]["status"]) {
+    if (status === "completed") {
+      return {
+        card: "border-cyan-300/15 bg-cyan-300/[0.035]",
+        text: "text-cyan-300",
+      };
+    }
+    if (status === "escalated") {
+      return {
+        card: "border-amber-300/20 bg-amber-300/[0.045]",
+        text: "text-amber-300",
+      };
+    }
+    return {
+      card: "border-rose-300/20 bg-rose-300/[0.045]",
+      text: "text-rose-300",
+    };
+  }
+
   return (
     <section className="rounded-3xl border border-white/10 bg-[#0a1220]/90 p-5 shadow-2xl shadow-black/20 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -70,22 +89,14 @@ export function RuntimeLifecycle({ runtimeRun }: RuntimeLifecycleProps) {
         {runtimeRun.lifecycle.map((record, index) => (
           <li
             key={record.stage}
-            className={`rounded-2xl border p-4 ${
-              record.status === "completed"
-                ? "border-cyan-300/15 bg-cyan-300/[0.035]"
-                : "border-rose-300/20 bg-rose-300/[0.045]"
-            }`}
+            className={`rounded-2xl border p-4 ${statusClasses(record.status).card}`}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="font-mono text-[10px] text-slate-500">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <span
-                className={`text-[10px] font-semibold uppercase tracking-wider ${
-                  record.status === "completed"
-                    ? "text-cyan-300"
-                    : "text-rose-300"
-                }`}
+                className={`text-[10px] font-semibold uppercase tracking-wider ${statusClasses(record.status).text}`}
               >
                 {record.status}
               </span>
@@ -135,7 +146,7 @@ export function RuntimeLifecycle({ runtimeRun }: RuntimeLifecycleProps) {
         </div>
       ) : (
         <p className="mt-6 rounded-2xl border border-rose-300/15 bg-rose-300/[0.035] p-4 text-sm text-rose-100">
-          No action preview was produced because policy blocked the request
+          No action preview was produced because policy stopped the request
           before execution.
         </p>
       )}

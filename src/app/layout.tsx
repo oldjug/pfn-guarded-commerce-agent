@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PFN Guarded Commerce Agent",
   description:
-    "A mock-only Hedera commerce policy dashboard for runtime spend controls.",
+    "A Hedera testnet commerce policy demo for PFN feature-buy requests.",
 };
 
 export default function RootLayout({

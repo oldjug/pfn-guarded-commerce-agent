@@ -1,4 +1,5 @@
 import type { MockPolicyProof, PolicyEvaluation } from "./types";
+import { createGuardedCommerceReceipt } from "./receipt";
 
 export function createMockPolicyProof(
   evaluation: PolicyEvaluation,
@@ -9,12 +10,18 @@ export function createMockPolicyProof(
       ? {
           type: "mock_action_approved" as const,
           detail:
-            "Policy approved a simulated external-wallet action. No transaction was created.",
+            "Policy approved a PFN feature-buy request. No transaction was created in this local proof preview.",
         }
-      : {
-          type: "mock_action_blocked" as const,
-          detail: `Policy blocked the simulated action: ${evaluation.blockedBy.join(", ")}.`,
-        };
+      : evaluation.decision === "escalated"
+        ? {
+            type: "mock_action_escalated" as const,
+            detail: `Policy requires owner review: ${evaluation.escalatedBy.join(", ")}.`,
+          }
+        : {
+            type: "mock_action_blocked" as const,
+            detail: `Policy blocked the simulated action: ${evaluation.blockedBy.join(", ")}.`,
+          };
+  const receipt = createGuardedCommerceReceipt(evaluation);
 
   return {
     schemaVersion: "pfn.guarded-commerce-policy-proof.v1",
@@ -22,7 +29,8 @@ export function createMockPolicyProof(
     generatedAt,
     mode: "mock_only",
     decision: evaluation.decision,
-    receiptStatus: "mock_policy_receipt_created",
+    receiptStatus: receipt.status,
+    receipt,
     liveSpendPerformed: false,
     ledgerReceiptIssued: false,
     hederaTransactionId: null,
@@ -46,8 +54,7 @@ export function createMockPolicyProof(
       {
         type: "mock_policy_receipt_created",
         occurredAt: generatedAt,
-        detail:
-          "Created a local Phase 1 audit receipt. It is not a Hedera payment or HCS receipt.",
+        detail: `Created a local PFN receipt preview for ${receipt.fulfillmentTarget}. It is not a Hedera payment or HCS receipt.`,
       },
     ],
   };

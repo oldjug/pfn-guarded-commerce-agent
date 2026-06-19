@@ -24,10 +24,10 @@ function runScenario(scenarioId: string) {
 }
 
 describe("runGuardedCommerceDryRun", () => {
-  it("registers five Agent Kit policy adapters", () => {
+  it("registers six Agent Kit policy adapters", () => {
     const adapters = createGuardedCommercePolicyAdapters();
 
-    expect(adapters).toHaveLength(5);
+    expect(adapters).toHaveLength(6);
     expect(adapters.every((adapter) => adapter instanceof AbstractPolicy)).toBe(
       true,
     );
@@ -37,11 +37,12 @@ describe("runGuardedCommerceDryRun", () => {
       "AllowedPurposePolicy",
       "CurrencyPolicy",
       "DailyBudgetPolicy",
+      "HumanApprovalPolicy",
     ]);
   });
 
   it("lets an approved HBAR request reach only the dry-run boundary", () => {
-    const run = runScenario("approved-hbar");
+    const run = runScenario("approved-feature-buy");
 
     expect(run.evaluation.decision).toBe("approved");
     expect(run.executionBoundary).toBe("reached");
@@ -66,7 +67,7 @@ describe("runGuardedCommerceDryRun", () => {
   });
 
   it("stops a blocked request before the execution boundary", () => {
-    const run = runScenario("unknown-recipient");
+    const run = runScenario("blocked-unknown-recipient");
 
     expect(run.evaluation.decision).toBe("blocked");
     expect(run.executionBoundary).toBe("not_reached");
@@ -79,12 +80,29 @@ describe("runGuardedCommerceDryRun", () => {
     );
   });
 
-  it("keeps USDC as a policy-only preview tool", () => {
-    const run = runScenario("usdc-policy-preview");
+  it("keeps wrong-currency requests on a policy-only preview tool", () => {
+    const run = runScenario("blocked-wrong-currency");
 
-    expect(run.evaluation.decision).toBe("approved");
-    expect(run.agentKit.toolMethod).toBe("pfn_usdc_policy_preview_tool");
+    expect(run.evaluation.decision).toBe("blocked");
+    expect(run.agentKit.toolMethod).toBe(
+      "pfn_unsupported_currency_policy_preview_tool",
+    );
     expect(run.safety.transactionBuilt).toBe(false);
     expect(run.safety.networkSubmitted).toBe(false);
+  });
+
+  it("escalates owner-review requests before the execution boundary", () => {
+    const run = runScenario("escalated-owner-review");
+
+    expect(run.evaluation.decision).toBe("escalated");
+    expect(run.evaluation.escalatedBy).toEqual(["human_approval"]);
+    expect(run.executionBoundary).toBe("not_reached");
+    expect(run.actionPreview).toBeNull();
+    expect(run.lifecycle.at(-1)).toEqual(
+      expect.objectContaining({
+        stage: "escalated_for_owner_review",
+        status: "escalated",
+      }),
+    );
   });
 });

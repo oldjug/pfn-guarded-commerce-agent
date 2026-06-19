@@ -7,6 +7,7 @@ export type RuntimeLifecycleStage =
   | "policy_evaluated"
   | "dry_run_execution_boundary_reached"
   | "blocked_before_execution"
+  | "escalated_for_owner_review"
   | "live_hbar_execution_requested"
   | "hedera_testnet_client_ready"
   | "hbar_transfer_submitted"
@@ -18,7 +19,10 @@ export type RuntimeLifecycleStage =
   | "hcs_audit_failed_closed"
   | "live_execution_failed_closed";
 
-export type RuntimeLifecycleStatus = "completed" | "blocked";
+export type RuntimeLifecycleStatus =
+  | "completed"
+  | "blocked"
+  | "escalated";
 
 export type RuntimeLifecycleRecord = {
   stage: RuntimeLifecycleStage;
@@ -104,12 +108,20 @@ export type HcsAuditCheckpointInput = {
   scenarioId: string;
   requestId: string;
   serviceName: string;
-  policyDecision: "approved";
-  hbarTransactionId: string;
-  hbarReceiptStatus: string;
+  policyDecision: "allowed" | "blocked" | "escalated";
+  policyVersion: "pfn-guarded-commerce-v1";
+  receiptId: string;
+  receiptStatus: "fulfillment-ready" | "blocked" | "owner-review-required";
+  feature: "PFN Feature Unlock";
+  fulfillmentTarget: "XRP / XRPL EVM Feature NFT";
+  hbarTransactionId: string | null;
+  hbarReceiptStatus: string | null;
   recipientAccountId: string;
-  amountTinybars: string;
+  amountAtomic: string;
+  currency: string;
   memo: string;
+  blockedBy: string[];
+  escalatedBy: string[];
   occurredAt: string;
 };
 
@@ -129,6 +141,7 @@ export type HcsAuditReceipt = {
 export type LiveHbarExecutionStatus =
   | "submitted"
   | "policy_blocked"
+  | "owner_review_required"
   | "fail_closed";
 
 export type LiveHbarExecutionSafety = {
@@ -153,4 +166,23 @@ export type PolicyGatedHbarExecutionResult = {
   hcsAudit: HcsAuditReceipt | null;
   lifecycle: RuntimeLifecycleRecord[];
   safety: LiveHbarExecutionSafety;
+};
+
+export type PolicyDecisionHcsAuditStatus = "submitted" | "fail_closed";
+
+export type PolicyDecisionHcsAuditSafety = {
+  hcsWritten: boolean;
+  persistencePerformed: false;
+  secretsRead: boolean;
+  mainnetAllowed: false;
+};
+
+export type PolicyDecisionHcsAuditResult = {
+  schemaVersion: "pfn.guarded-commerce-policy-hcs-audit.v1";
+  scenarioId: string;
+  status: PolicyDecisionHcsAuditStatus;
+  message: string;
+  runtimeRun: GuardedCommerceRuntimeRun;
+  hcsAudit: HcsAuditReceipt | null;
+  safety: PolicyDecisionHcsAuditSafety;
 };

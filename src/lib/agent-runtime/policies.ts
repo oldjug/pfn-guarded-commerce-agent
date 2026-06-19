@@ -11,12 +11,12 @@ import type {
   PolicyEvaluation,
 } from "@/lib/policy/types";
 
-export const PFN_USDC_POLICY_PREVIEW_TOOL =
-  "pfn_usdc_policy_preview_tool";
+export const PFN_UNSUPPORTED_CURRENCY_POLICY_PREVIEW_TOOL =
+  "pfn_unsupported_currency_policy_preview_tool";
 
 export const GUARDED_COMMERCE_RELEVANT_TOOLS = [
   coreAccountPluginToolNames.TRANSFER_HBAR_TOOL,
-  PFN_USDC_POLICY_PREVIEW_TOOL,
+  PFN_UNSUPPORTED_CURRENCY_POLICY_PREVIEW_TOOL,
 ] as const;
 
 type RuntimeNormalisedParams = {
@@ -81,6 +81,11 @@ export function createGuardedCommercePolicyAdapters() {
       "DailyBudgetPolicy",
       "Blocks requests that would exceed the configured daily budget.",
       "daily_budget",
+    ),
+    new GuardedCommercePolicyAdapter(
+      "HumanApprovalPolicy",
+      "Escalates higher-value requests for owner review before any spend.",
+      "human_approval",
     ),
   ] as const;
 }

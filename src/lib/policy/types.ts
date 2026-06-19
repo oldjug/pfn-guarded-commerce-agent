@@ -1,17 +1,23 @@
-export type SupportedCurrency = "HBAR" | "USDC";
+import type { GuardedCommerceReceipt } from "./receipt";
+
+export type SupportedCurrency = "HBAR";
 
 export type PolicyCheckKey =
   | "max_spend"
   | "allowed_counterparty"
   | "allowed_purpose"
   | "currency"
-  | "daily_budget";
+  | "daily_budget"
+  | "human_approval";
 
-export type PolicyDecision = "approved" | "blocked";
+export type PolicyDecision = "approved" | "blocked" | "escalated";
+
+export type PolicyCheckResult = "pass" | "block" | "escalate";
 
 export type PolicyCheck = {
   key: PolicyCheckKey;
   label: string;
+  result: PolicyCheckResult;
   passed: boolean;
   expected: string;
   observed: string;
@@ -22,7 +28,8 @@ export type CurrencyPolicy = {
   decimals: number;
   maxSpendAtomic: string;
   dailyBudgetAtomic: string;
-  status: "primary_demo" | "policy_ready";
+  humanApprovalThresholdAtomic: string;
+  status: "primary_demo";
 };
 
 export type CounterpartyPolicy = {
@@ -51,6 +58,7 @@ export type PolicyEvaluation = {
   request: CommerceRequest;
   checks: PolicyCheck[];
   blockedBy: PolicyCheckKey[];
+  escalatedBy: PolicyCheckKey[];
 };
 
 export type MockProofEventType =
@@ -58,6 +66,7 @@ export type MockProofEventType =
   | "policy_evaluated"
   | "mock_action_approved"
   | "mock_action_blocked"
+  | "mock_action_escalated"
   | "mock_policy_receipt_created";
 
 export type MockProofEvent = {
@@ -72,7 +81,11 @@ export type MockPolicyProof = {
   generatedAt: string;
   mode: "mock_only";
   decision: PolicyDecision;
-  receiptStatus: "mock_policy_receipt_created";
+  receiptStatus:
+    | "fulfillment-ready"
+    | "blocked"
+    | "owner-review-required";
+  receipt: GuardedCommerceReceipt;
   liveSpendPerformed: false;
   ledgerReceiptIssued: false;
   hederaTransactionId: null;

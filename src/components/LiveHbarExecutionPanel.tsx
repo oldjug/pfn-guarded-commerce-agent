@@ -27,10 +27,10 @@ export function LiveHbarExecutionPanel({
         Policy-gated execution
       </h2>
       <p className="mt-3 text-sm leading-6 text-slate-300">
-        Phase 5 can submit a real HBAR transfer on Hedera testnet only after
-        every policy check passes, then write an HCS audit checkpoint. Mainnet,
-        USDC live transfers, and persistence are still blocked; hosted demos
-        must keep this boundary env-gated.
+        The guarded live-HBAR path can submit a real transfer on Hedera
+        testnet only after every policy check passes, then write an HCS audit
+        checkpoint. Mainnet, unsupported currency transfers, and persistence
+        are still blocked; hosted demos must keep this boundary env-gated.
       </p>
 
       <button
@@ -50,8 +50,8 @@ export function LiveHbarExecutionPanel({
 
       {!canExecute ? (
         <p className="mt-3 text-xs leading-5 text-slate-500">
-          Available only for approved HBAR requests. Blocked requests and USDC
-          preview requests cannot create a Hedera client.
+          Available only for approved HBAR requests. Blocked, escalated, and
+          wrong-currency requests cannot create a Hedera client.
         </p>
       ) : null}
 

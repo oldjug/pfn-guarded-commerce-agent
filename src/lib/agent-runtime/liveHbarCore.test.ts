@@ -23,8 +23,8 @@ function fakeReceipt() {
     transactionHash: "abc123",
     receiptStatus: "SUCCESS",
     recipientAccountId: "0.0.9186153",
-    amountTinybars: "100000000",
-    memo: "PFN-GCA:GCA-APPROVED-001",
+    amountTinybars: "200000000",
+    memo: "PFN-GCA:GCA-APPROVED-FEATURE-001",
     executedAt: "2026-06-15T22:00:00.000Z",
   };
 }
@@ -46,7 +46,7 @@ function fakeHcsAudit() {
 
 describe("executePolicyGatedHbarTransfer", () => {
   it("submits approved HBAR and writes an HCS audit checkpoint", async () => {
-    const scenario = getScenario("approved-hbar");
+    const scenario = getScenario("approved-feature-buy");
     const executeHbarTransfer = vi.fn().mockResolvedValue(fakeReceipt());
     const assertHcsAuditReady = vi.fn();
     const submitHcsAudit = vi.fn().mockResolvedValue(fakeHcsAudit());
@@ -71,14 +71,15 @@ describe("executePolicyGatedHbarTransfer", () => {
     expect(assertHcsAuditReady).toHaveBeenCalledOnce();
     expect(executeHbarTransfer).toHaveBeenCalledExactlyOnceWith({
       recipientAccountId: "0.0.9186153",
-      amountTinybars: "100000000",
-      memo: "PFN-GCA:GCA-APPROVED-001",
+      amountTinybars: "200000000",
+      memo: "PFN-GCA:GCA-APPROVED-FEATURE-001",
     });
     expect(submitHcsAudit).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         hbarTransactionId: "0.0.1234@1710000000.000000000",
-        requestId: "GCA-APPROVED-001",
-        policyDecision: "approved",
+        requestId: "GCA-APPROVED-FEATURE-001",
+        policyDecision: "allowed",
+        fulfillmentTarget: "XRP / XRPL EVM Feature NFT",
       }),
     );
     expect(result.lifecycle.map(({ stage }) => stage)).toContain(
@@ -87,7 +88,7 @@ describe("executePolicyGatedHbarTransfer", () => {
   });
 
   it("does not create a Hedera client or call the executor for blocked policy", async () => {
-    const scenario = getScenario("unknown-recipient");
+    const scenario = getScenario("blocked-unknown-recipient");
     const executeHbarTransfer = vi.fn();
     const assertHcsAuditReady = vi.fn();
     const submitHcsAudit = vi.fn();
@@ -111,8 +112,8 @@ describe("executePolicyGatedHbarTransfer", () => {
     expect(submitHcsAudit).not.toHaveBeenCalled();
   });
 
-  it("fails closed for approved non-HBAR requests before executor call", async () => {
-    const scenario = getScenario("usdc-policy-preview");
+  it("requires owner review before executor call for escalated requests", async () => {
+    const scenario = getScenario("escalated-owner-review");
     const executeHbarTransfer = vi.fn();
     const assertHcsAuditReady = vi.fn();
     const submitHcsAudit = vi.fn();
@@ -127,8 +128,8 @@ describe("executePolicyGatedHbarTransfer", () => {
       occurredAt: "2026-06-15T21:00:00.000Z",
     });
 
-    expect(result.status).toBe("fail_closed");
-    expect(result.message).toMatch(/limited to HBAR/i);
+    expect(result.status).toBe("owner_review_required");
+    expect(result.message).toMatch(/HumanApprovalPolicy/i);
     expect(result.safety.clientCreated).toBe(false);
     expect(executeHbarTransfer).not.toHaveBeenCalled();
     expect(assertHcsAuditReady).not.toHaveBeenCalled();
@@ -136,7 +137,7 @@ describe("executePolicyGatedHbarTransfer", () => {
   });
 
   it("fails closed before HBAR transfer when HCS audit env is missing", async () => {
-    const scenario = getScenario("approved-hbar");
+    const scenario = getScenario("approved-feature-buy");
     const executeHbarTransfer = vi.fn();
     const assertHcsAuditReady = vi
       .fn()
@@ -165,7 +166,7 @@ describe("executePolicyGatedHbarTransfer", () => {
   });
 
   it("fails closed when the execution boundary throws", async () => {
-    const scenario = getScenario("approved-hbar");
+    const scenario = getScenario("approved-feature-buy");
     const executeHbarTransfer = vi
       .fn()
       .mockRejectedValue(new Error("Missing HEDERA_OPERATOR_PRIVATE_KEY."));
@@ -188,7 +189,7 @@ describe("executePolicyGatedHbarTransfer", () => {
   });
 
   it("fails closed when HCS audit write fails after HBAR receipt", async () => {
-    const scenario = getScenario("approved-hbar");
+    const scenario = getScenario("approved-feature-buy");
     const executeHbarTransfer = vi.fn().mockResolvedValue(fakeReceipt());
     const submitHcsAudit = vi
       .fn()

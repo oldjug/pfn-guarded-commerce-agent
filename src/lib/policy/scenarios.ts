@@ -8,16 +8,10 @@ export const GUARDED_COMMERCE_POLICY: GuardedCommercePolicy = {
     HBAR: {
       currency: "HBAR",
       decimals: 8,
-      maxSpendAtomic: "500000000",
-      dailyBudgetAtomic: "1200000000",
+      maxSpendAtomic: "1000000000",
+      dailyBudgetAtomic: "3000000000",
+      humanApprovalThresholdAtomic: "500000000",
       status: "primary_demo",
-    },
-    USDC: {
-      currency: "USDC",
-      decimals: 6,
-      maxSpendAtomic: "10000000",
-      dailyBudgetAtomic: "25000000",
-      status: "policy_ready",
     },
   },
   allowedCounterparties: [
@@ -31,83 +25,94 @@ export const GUARDED_COMMERCE_POLICY: GuardedCommercePolicy = {
     },
   ],
   allowedPurposes: [
-    "api_access",
-    "commerce_unlock",
-    "document_analysis",
+    "feature-unlock",
   ],
 };
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
-    id: "approved-hbar",
-    label: "Approved HBAR",
+    id: "approved-feature-buy",
+    label: "Approved feature buy",
     description:
-      "Allowed recipient, purpose, currency, request limit, and daily budget.",
+      "2 HBAR to the approved PFN provider for feature-unlock.",
     request: {
-      requestId: "GCA-APPROVED-001",
-      serviceName: "PFN document analysis API",
+      requestId: "GCA-APPROVED-FEATURE-001",
+      serviceName: "PFN Feature Unlock",
       recipientAccountId: "0.0.9186153",
-      purpose: "document_analysis",
+      purpose: "feature-unlock",
       currency: "HBAR",
-      amountAtomic: "100000000",
+      amountAtomic: "200000000",
       spentTodayAtomic: "200000000",
     },
   },
   {
-    id: "over-limit",
+    id: "blocked-over-limit",
     label: "Over limit",
-    description: "The request exceeds MaxSpendPolicy and is blocked.",
+    description: "20 HBAR exceeds MaxSpendPolicy.",
     request: {
       requestId: "GCA-LIMIT-002",
-      serviceName: "PFN commerce unlock",
+      serviceName: "PFN Feature Unlock",
       recipientAccountId: "0.0.9186153",
-      purpose: "commerce_unlock",
+      purpose: "feature-unlock",
       currency: "HBAR",
-      amountAtomic: "600000000",
+      amountAtomic: "2000000000",
       spentTodayAtomic: "100000000",
     },
   },
   {
-    id: "unknown-recipient",
+    id: "blocked-unknown-recipient",
     label: "Unknown recipient",
-    description: "The recipient is absent from the approved counterparty list.",
+    description: "2 HBAR to a recipient outside the approved list.",
     request: {
       requestId: "GCA-RECIPIENT-003",
-      serviceName: "Unknown API provider",
+      serviceName: "PFN Feature Unlock",
       recipientAccountId: "0.0.9999999",
-      purpose: "api_access",
+      purpose: "feature-unlock",
       currency: "HBAR",
-      amountAtomic: "50000000",
+      amountAtomic: "200000000",
       spentTodayAtomic: "100000000",
     },
   },
   {
-    id: "wrong-purpose",
+    id: "blocked-wrong-purpose",
     label: "Wrong purpose",
-    description: "The requested purpose is outside the approved use cases.",
+    description: "2 HBAR with unrelated-trade as the purpose.",
     request: {
       requestId: "GCA-PURPOSE-004",
-      serviceName: "Unapproved trading service",
-      recipientAccountId: "0.0.8010421",
-      purpose: "speculative_trading",
+      serviceName: "PFN Feature Unlock",
+      recipientAccountId: "0.0.9186153",
+      purpose: "unrelated-trade",
       currency: "HBAR",
-      amountAtomic: "50000000",
+      amountAtomic: "200000000",
       spentTodayAtomic: "100000000",
     },
   },
   {
-    id: "usdc-policy-preview",
-    label: "USDC policy preview",
-    description:
-      "USDC passes the policy model, but token transfer execution is not implemented.",
+    id: "blocked-wrong-currency",
+    label: "Wrong currency",
+    description: "2 XRP is unsupported for the Hedera rail.",
     request: {
-      requestId: "GCA-USDC-005",
-      serviceName: "PFN approved data API",
-      recipientAccountId: "0.0.8010421",
-      purpose: "api_access",
-      currency: "USDC",
-      amountAtomic: "3000000",
-      spentTodayAtomic: "4000000",
+      requestId: "GCA-CURRENCY-005",
+      serviceName: "PFN Feature Unlock",
+      recipientAccountId: "0.0.9186153",
+      purpose: "feature-unlock",
+      currency: "XRP",
+      amountAtomic: "2000000",
+      spentTodayAtomic: "0",
+    },
+  },
+  {
+    id: "escalated-owner-review",
+    label: "Owner review",
+    description: "8 HBAR is allowed only after human approval.",
+    request: {
+      requestId: "GCA-ESCALATED-006",
+      serviceName: "PFN Feature Unlock",
+      recipientAccountId: "0.0.9186153",
+      purpose: "feature-unlock",
+      currency: "HBAR",
+      amountAtomic: "800000000",
+      spentTodayAtomic: "100000000",
     },
   },
 ];
@@ -119,7 +124,7 @@ export function getDemoScenarioById(scenarioId: string) {
 }
 
 export function getCurrencyStatus(currency: string) {
-  if (currency !== "HBAR" && currency !== "USDC") {
+  if (currency !== "HBAR") {
     return "unsupported";
   }
 

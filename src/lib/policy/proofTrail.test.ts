@@ -24,6 +24,17 @@ describe("createMockPolicyProof", () => {
     expect(proof.ledgerReceiptIssued).toBe(false);
     expect(proof.hederaTransactionId).toBeNull();
     expect(proof.hcsTopicId).toBeNull();
+    expect(proof.receipt).toMatchObject({
+      project: "PFN Guarded Commerce Agent",
+      rail: "hedera",
+      sourcePayment: "HBAR testnet tx or verified payment proof",
+      feature: "PFN Feature Unlock",
+      fulfillmentTarget: "XRP / XRPL EVM Feature NFT",
+      decision: "allowed",
+      policyVersion: "pfn-guarded-commerce-v1",
+      receiptId: "pfn-gca:GCA-APPROVED-FEATURE-001",
+      status: "fulfillment-ready",
+    });
     expect(proof.events.map(({ type }) => type)).toContain(
       "mock_action_approved",
     );

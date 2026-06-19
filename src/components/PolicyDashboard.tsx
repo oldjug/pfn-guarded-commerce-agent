@@ -3,12 +3,14 @@
 import { useMemo, useRef, useState } from "react";
 
 import { PolicyChecks } from "@/components/PolicyChecks";
+import { HcsPolicyAuditPanel } from "@/components/HcsPolicyAuditPanel";
 import { LiveHbarExecutionPanel } from "@/components/LiveHbarExecutionPanel";
 import { ProofTrail } from "@/components/ProofTrail";
 import { RuntimeLifecycle } from "@/components/RuntimeLifecycle";
 import { ScenarioPicker } from "@/components/ScenarioPicker";
 import type {
   GuardedCommerceRuntimeRun,
+  PolicyDecisionHcsAuditResult,
   PolicyGatedHbarExecutionResult,
 } from "@/lib/agent-runtime/types";
 import {
@@ -38,6 +40,10 @@ export function PolicyDashboard({
     useState<PolicyGatedHbarExecutionResult | null>(null);
   const [liveError, setLiveError] = useState<string | null>(null);
   const [livePending, setLivePending] = useState(false);
+  const [hcsAuditResult, setHcsAuditResult] =
+    useState<PolicyDecisionHcsAuditResult | null>(null);
+  const [hcsAuditError, setHcsAuditError] = useState<string | null>(null);
+  const [hcsAuditPending, setHcsAuditPending] = useState(false);
   const selectedScenario =
     DEMO_SCENARIOS.find(({ id }) => id === selectedScenarioId) ??
     DEMO_SCENARIOS[0];
@@ -47,8 +53,7 @@ export function PolicyDashboard({
     [evaluation, runtimeRun.completedAt],
   );
   const currencyPolicy =
-    selectedScenario.request.currency === "HBAR" ||
-    selectedScenario.request.currency === "USDC"
+    selectedScenario.request.currency === "HBAR"
       ? GUARDED_COMMERCE_POLICY.currencies[
           selectedScenario.request.currency
         ]
@@ -72,6 +77,8 @@ export function PolicyDashboard({
     setRuntimeError(null);
     setLiveResult(null);
     setLiveError(null);
+    setHcsAuditResult(null);
+    setHcsAuditError(null);
 
     try {
       const response = await fetch("/api/runtime/evaluate", {
@@ -154,6 +161,49 @@ export function PolicyDashboard({
     }
   }
 
+  async function handleHcsPolicyAudit() {
+    setHcsAuditPending(true);
+    setHcsAuditError(null);
+    setHcsAuditResult(null);
+
+    try {
+      const response = await fetch("/api/audit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ scenarioId: selectedScenarioId }),
+      });
+      const body = (await response.json()) as
+        | PolicyDecisionHcsAuditResult
+        | { error?: string };
+
+      if (!response.ok && !("schemaVersion" in body)) {
+        throw new Error(
+          body.error ?? "The HCS policy audit boundary failed closed.",
+        );
+      }
+
+      if ("schemaVersion" in body) {
+        setHcsAuditResult(body);
+        if (body.status !== "submitted") {
+          setHcsAuditError(body.message);
+        }
+        return;
+      }
+
+      throw new Error("The HCS policy audit boundary returned no result.");
+    } catch (error) {
+      setHcsAuditError(
+        error instanceof Error
+          ? error.message
+          : "The HCS policy audit boundary failed closed.",
+      );
+    } finally {
+      setHcsAuditPending(false);
+    }
+  }
+
   return (
     <div className="space-y-6" aria-busy={pendingScenarioId !== null}>
       <ScenarioPicker
@@ -201,6 +251,8 @@ export function PolicyDashboard({
               className={`rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] ${
                 evaluation.decision === "approved"
                   ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200"
+                  : evaluation.decision === "escalated"
+                    ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
                   : "border-rose-300/30 bg-rose-300/10 text-rose-200"
               }`}
             >
@@ -258,11 +310,15 @@ export function PolicyDashboard({
             <h2 className="mt-3 text-2xl font-semibold text-white">
               {evaluation.decision === "approved"
                 ? "Dry-run boundary reached"
+                : evaluation.decision === "escalated"
+                  ? "Owner review required"
                 : "Blocked before execution"}
             </h2>
             <p className="mt-3 text-sm leading-6 text-slate-300">
               {evaluation.decision === "approved"
                 ? "Every Agent Kit policy adapter passed. The runtime produced an action preview and intentionally did not invoke the tool."
+                : evaluation.decision === "escalated"
+                  ? `Human approval is required before the agent can continue. The runtime stopped at ${evaluation.escalatedBy.join(", ")}.`
                 : `${evaluation.blockedBy.length} policy check${
                     evaluation.blockedBy.length === 1 ? "" : "s"
                   } failed. The runtime stopped before the dry-run execution boundary.`}
@@ -272,7 +328,7 @@ export function PolicyDashboard({
               disabled
               className="mt-6 w-full cursor-not-allowed rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-500"
             >
-              Direct Agent Kit tool execution disabled outside guarded Phase 5 path
+              Direct Agent Kit tool execution disabled outside guarded live-HBAR path
             </button>
           </section>
 
@@ -302,6 +358,13 @@ export function PolicyDashboard({
             pending={livePending}
             error={liveError}
             onExecute={handleLiveHbarExecute}
+          />
+
+          <HcsPolicyAuditPanel
+            result={hcsAuditResult}
+            pending={hcsAuditPending}
+            error={hcsAuditError}
+            onSubmit={handleHcsPolicyAudit}
           />
         </div>
       </div>

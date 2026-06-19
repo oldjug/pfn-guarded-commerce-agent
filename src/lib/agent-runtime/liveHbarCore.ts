@@ -8,6 +8,7 @@ import type {
   PolicyGatedHbarExecutionResult,
   RuntimeLifecycleRecord,
 } from "@/lib/agent-runtime/types";
+import { createHcsAuditInputForEvaluation } from "@/lib/policy/receipt";
 import type {
   CommerceRequest,
   GuardedCommercePolicy,
@@ -71,6 +72,21 @@ export async function executePolicyGatedHbarTransfer({
     occurredAt,
   );
 
+  if (runtimeRun.evaluation.decision === "escalated") {
+    return {
+      schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
+      scenarioId,
+      status: "owner_review_required",
+      message:
+        "HumanApprovalPolicy escalated this request for owner review before Hedera client or transfer creation.",
+      runtimeRun,
+      receipt: null,
+      hcsAudit: null,
+      lifecycle: runtimeRun.lifecycle,
+      safety: createSafety(),
+    };
+  }
+
   if (runtimeRun.evaluation.decision !== "approved") {
     return {
       schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
@@ -91,7 +107,7 @@ export async function executePolicyGatedHbarTransfer({
       schemaVersion: "pfn.guarded-commerce-live-hbar.v1",
       scenarioId,
       status: "fail_closed",
-      message: "Live execution is limited to HBAR testnet transfers in Phase 5.",
+      message: "Live execution is limited to HBAR testnet transfers in this demo.",
       runtimeRun,
       receipt: null,
       hcsAudit: null,
@@ -181,17 +197,16 @@ export async function executePolicyGatedHbarTransfer({
 
       try {
         const hcsAudit = await submitHcsAudit({
-          schemaVersion: "pfn.guarded-commerce-hcs-audit-input.v1",
-          scenarioId,
-          requestId: runtimeRun.normalizedIntent.requestId,
-          serviceName: runtimeRun.normalizedIntent.serviceName,
-          policyDecision: "approved",
-          hbarTransactionId: receipt.transactionId,
-          hbarReceiptStatus: receipt.receiptStatus,
+          ...createHcsAuditInputForEvaluation({
+            scenarioId,
+            evaluation: runtimeRun.evaluation,
+            occurredAt: receipt.executedAt,
+            hbarReceipt: receipt,
+          }),
           recipientAccountId: receipt.recipientAccountId,
-          amountTinybars: receipt.amountTinybars,
+          amountAtomic: receipt.amountTinybars,
+          currency: "HBAR",
           memo: receipt.memo,
-          occurredAt: receipt.executedAt,
         });
 
         lifecycle = [

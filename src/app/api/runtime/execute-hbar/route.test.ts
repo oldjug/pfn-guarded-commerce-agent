@@ -14,7 +14,7 @@ describe("POST /api/runtime/execute-hbar", () => {
       new Request("http://localhost/api/runtime/execute-hbar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarioId: "approved-hbar" }),
+        body: JSON.stringify({ scenarioId: "approved-feature-buy" }),
       }),
     );
     const body = await response.json();
@@ -31,7 +31,7 @@ describe("POST /api/runtime/execute-hbar", () => {
       new Request("http://localhost/api/runtime/execute-hbar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarioId: "unknown-recipient" }),
+        body: JSON.stringify({ scenarioId: "blocked-unknown-recipient" }),
       }),
     );
     const body = await response.json();
@@ -43,18 +43,18 @@ describe("POST /api/runtime/execute-hbar", () => {
     expect(body.safety.clientCreated).toBe(false);
   });
 
-  it("fails closed for approved USDC preview requests", async () => {
+  it("requires owner review for escalated HBAR requests", async () => {
     const response = await post(
       new Request("http://localhost/api/runtime/execute-hbar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarioId: "usdc-policy-preview" }),
+        body: JSON.stringify({ scenarioId: "escalated-owner-review" }),
       }),
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.status).toBe("fail_closed");
-    expect(body.message).toMatch(/limited to HBAR/i);
+    expect(body.status).toBe("owner_review_required");
+    expect(body.message).toMatch(/HumanApprovalPolicy/i);
   });
 });

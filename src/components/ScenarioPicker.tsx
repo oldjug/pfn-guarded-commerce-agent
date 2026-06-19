@@ -13,7 +13,7 @@ export function ScenarioPicker({
 }: ScenarioPickerProps) {
   return (
     <div
-      className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+      className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6"
       role="group"
       aria-label="Demo requests"
     >
