@@ -4,6 +4,13 @@ Standalone submission prototype for Issue #80: a policy-gated Hedera commerce ag
 
 This is Jug-style PFN, not a clone of another agent-spend project. The demo keeps the agent boxed inside policy before any payment proof, HBAR transfer, HCS write, or PFN receipt handoff can happen.
 
+## Submission Links
+
+- GitHub: <https://github.com/oldjug/pfn-guarded-commerce-agent>
+- Production demo: <https://pfn-guarded-commerce-agent.vercel.app>
+- Submission commit: `67d1157`
+- Production safety: no Hedera operator secrets are configured in Vercel, so live HBAR execution and HCS writes fail closed unless a testnet-only operator is added intentionally.
+
 ## Core Flow
 
 1. User chooses the Hedera rail for a PFN feature buy.
