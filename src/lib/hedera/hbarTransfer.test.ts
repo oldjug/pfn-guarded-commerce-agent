@@ -21,7 +21,7 @@ describe("readHederaTestnetConfig", () => {
         HEDERA_LIVE_HBAR_ENABLED: "true",
         HEDERA_NETWORK: "mainnet",
         HEDERA_OPERATOR_ACCOUNT_ID: "0.0.1234",
-        HEDERA_OPERATOR_PRIVATE_KEY: "secret",
+        HEDERA_OPERATOR_PRIVATE_KEY: "test-only-invalid-private-key",
       }),
     ).toThrow(/Only HEDERA_NETWORK=testnet/);
   });
@@ -31,7 +31,7 @@ describe("readHederaTestnetConfig", () => {
       HEDERA_LIVE_HBAR_ENABLED: "true",
       HEDERA_NETWORK: "testnet",
       HEDERA_OPERATOR_ACCOUNT_ID: "0.0.1234",
-      HEDERA_OPERATOR_PRIVATE_KEY: "secret",
+      HEDERA_OPERATOR_PRIVATE_KEY: "test-only-invalid-private-key",
       HEDERA_OPERATOR_PRIVATE_KEY_TYPE: "ECDSA",
     });
 
